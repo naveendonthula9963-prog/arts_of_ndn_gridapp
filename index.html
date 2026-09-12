@@ -108,7 +108,11 @@ input[type=range]{width:100%}
     <div class="row"><button onclick="setOrientation('portrait')">Portrait</button><button onclick="setOrientation('landscape')">Landscape</button></div>
     <button class="primary" style="width:100%" onclick="resizeCanvas()">Apply Canvas</button>
   </div>
-
+  
+<div class="row">
+  <label>Square Grid</label>
+  <input id="squareGrid" type="checkbox" onchange="draw()">
+</div>
   <div class="section">
     <h3>Grid</h3>
     <div class="row"><label>Rows</label><input id="rows" type="number" value="10" min="1" max="100" onchange="draw()"></div>
