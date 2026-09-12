@@ -59,6 +59,7 @@ input[type=range]{width:100%}
 .drawingToolsDisabled{opacity:.42;pointer-events:none;filter:grayscale(1)}
 .drawingToolsEnabled{opacity:1;pointer-events:auto}
 .modeBadge{font-size:12px;color:var(--muted);padding:6px 8px;border-radius:6px;background:#101317}
+.gridSelectBadge{position:absolute;left:10px;top:10px;z-index:5;background:#111b18;color:#fff;border:1px solid var(--accent);padding:7px 10px;border-radius:7px;font-size:12px;display:none;pointer-events:none}
 
 @media(max-width:850px){
  .sidebar{width:235px}.sourceBtns{grid-template-columns:1fr}
@@ -109,17 +110,98 @@ input[type=range]{width:100%}
     <button class="primary" style="width:100%" onclick="resizeCanvas()">Apply Canvas</button>
   </div>
   
-<head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>ARTS OF NDN Grid App</title> <style> * { box-sizing: border-box; } body { margin: 0; font-family: Arial, sans-serif; background: #f2f2f2; } .app { display: flex; height: 100vh; overflow: hidden; } .controls { width: 280px; padding: 20px; background: white; overflow-y: auto; border-right: 1px solid #ccc; } h1 { font-size: 20px; margin: 0 0 20px; text-align: center; } .section { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa; } .section h3 { margin-top: 0; margin-bottom: 15px; } .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; } .row label { font-size: 14px; min-width: 80px; } input[type="number"] { width: 100px; padding: 6px; } input[type="color"] { width: 55px; height: 35px; padding: 2px; } input[type="range"] { width: 110px; } select { width: 100%; padding: 7px; margin-bottom: 12px; } .check { display: block; margin: 12px 0; font-size: 14px; cursor: pointer; } .canvas-area { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; overflow: auto; background: #e8e8e8; } canvas { background: white; border: 1px solid #999; max-width: 100%; max-height: 100%; } .value { font-size: 12px; color: #555; min-width: 35px; text-align: right; } </style> </head> <body> <div class="app"> <div class="controls"> <h1>ARTS OF NDN Grid App</h1> <div class="section"> <h3>Grid</h3> <!-- SQUARE GRID --> <div class="row"> <label>Square Grid</label> <input id="squareGrid" type="checkbox" onchange="draw()" > </div> <!-- ROWS --> <div class="row"> <label>Rows</label> <input id="rows" type="number" value="10" min="1" max="100" onchange="draw()" > </div> <!-- COLUMNS --> <div class="row"> <label>Columns</label> <input id="cols" type="number" value="10" min="1" max="100" onchange="draw()" > </div> <!-- LINE COLOR --> <div class="row"> <label>Line</label> <input id="gridColor" type="color" value="#00aa88" onchange="draw()" > </div> <!-- THICKNESS --> <div class="row"> <label>Thickness</label> <input id="gridWidth" type="range" min=".2" max="8" step=".2" value="1" oninput="draw()" > <span id="widthValue" class="value">1</span> </div> <!-- OPACITY --> <div class="row"> <label>Opacity</label> <input id="gridOpacity" type="range" min="0" max="1" step=".05" value=".75" oninput="draw()" > <span id="opacityValue" class="value">75%</span> </div> <!-- GRID STYLE --> <div class="row"> <label>Style</label> <select id="gridStyle" onchange="draw()" > <option value="Solid">Solid</option> <option value="Dashed">Dashed</option> <option value="Dotted">Dotted</option> </select> </div> <!-- DIAGONAL --> <label class="check"> <input id="diagonal" type="checkbox" onchange="draw()" > Diagonal / cross </label> <!-- LABELS --> <label class="check"> <input id="labels" type="checkbox" onchange="draw()" > Cell labels </label> </div> </div> <div class="canvas-area"> <canvas id="canvas" width="900" height="700"></canvas> </div> </div> <script> const canvas = document.getElementById("canvas"); const ctx = canvas.getContext("2d"); function hexToRgb(hex) { hex = hex.replace("#", ""); return { r: parseInt(hex.substring(0, 2), 16), g: parseInt(hex.substring(2, 4), 16), b: parseInt(hex.substring(4, 6), 16) }; } function draw() { /* CLEAR CANVAS */ ctx.clearRect( 0, 0, canvas.width, canvas.height ); /* GET VALUES */ let rows = Number( document.getElementById("rows").value ); let cols = Number( document.getElementById("cols").value ); const squareGrid = document.getElementById("squareGrid").checked; const gridColor = document.getElementById("gridColor").value; const gridWidth = Number(document.getElementById("gridWidth").value); const gridOpacity = Number(document.getElementById("gridOpacity").value); const gridStyle = document.getElementById("gridStyle").value; const diagonal = document.getElementById("diagonal").checked; const labels = document.getElementById("labels").checked; /* UPDATE DISPLAY VALUES */ document.getElementById("widthValue").textContent = gridWidth; document.getElementById("opacityValue").textContent = Math.round(gridOpacity * 100) + "%"; /* PREVENT INVALID VALUES */ rows = Math.max(1, Math.min(100, rows)); cols = Math.max(1, Math.min(100, cols)); /* GRID POSITION AND SIZE */ let cellWidth; let cellHeight; let startX = 0; let startY = 0; let gridWidthTotal; let gridHeightTotal; /* SQUARE GRID MODE ---------------- Width and height of every cell will be exactly the same. */ if (squareGrid) { const cellSize = Math.min( canvas.width / cols, canvas.height / rows ); cellWidth = cellSize; cellHeight = cellSize; gridWidthTotal = cellWidth * cols; gridHeightTotal = cellHeight * rows; /* CENTER GRID */ startX = (canvas.width - gridWidthTotal) / 2; startY = (canvas.height - gridHeightTotal) / 2; } /* NORMAL GRID MODE */ else { cellWidth = canvas.width / cols; cellHeight = canvas.height / rows; gridWidthTotal = canvas.width; gridHeightTotal = canvas.height; startX = 0; startY = 0; } /* GRID LINE COLOR */ const rgb = hexToRgb(gridColor); ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`; ctx.lineWidth = gridWidth; /* LINE STYLE */ if (gridStyle === "Dashed") { ctx.setLineDash([ 8, 6 ]); } else if (gridStyle === "Dotted") { ctx.setLineDash([ 1, 5 ]); } else { ctx.setLineDash([]); } /* DRAW VERTICAL LINES */ for (let c = 0; c <= cols; c++) { const x = startX + c * cellWidth; ctx.beginPath(); ctx.moveTo( x, startY ); ctx.lineTo( x, startY + gridHeightTotal ); ctx.stroke(); } /* DRAW HORIZONTAL LINES */ for (let r = 0; r <= rows; r++) { const y = startY + r * cellHeight; ctx.beginPath(); ctx.moveTo( startX, y ); ctx.lineTo( startX + gridWidthTotal, y ); ctx.stroke(); } /* RESET DASH */ ctx.setLineDash([]); /* DIAGONAL / CROSS */ if (diagonal) { for (let r = 0; r < rows; r++) { for (let c = 0; c < cols; c++) { const x = startX + c * cellWidth; const y = startY + r * cellHeight; /* FIRST DIAGONAL */ ctx.beginPath(); ctx.moveTo( x, y ); ctx.lineTo( x + cellWidth, y + cellHeight ); ctx.stroke(); /* SECOND DIAGONAL */ ctx.beginPath(); ctx.moveTo( x + cellWidth, y ); ctx.lineTo( x, y + cellHeight ); ctx.stroke(); } } } /* CELL LABELS */ if (labels) { ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 1)`; ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; for (let r = 0; r < rows; r++) { for (let c = 0; c < cols; c++) { const x = startX + c * cellWidth + cellWidth / 2; const y = startY + r * cellHeight + cellHeight / 2; /* Example: A1 A2 A3 B1 B2 B3 C1 C2 C3 */ const letter = String.fromCharCode( 65 + (r % 26) ); const label = letter + (c + 1); ctx.fillText( label, x, y ); } } } } /* INITIAL DRAW */ draw(); </script> </body>
-  <label class="check">
-    <input id="diagonal" type="checkbox" onchange="draw()">
-    Diagonal / cross
-  </label>
+  <div class="section">
+    <h3>Grid</h3>
+    <div class="row"><label>Square Grid</label><input id="squareGrid" type="checkbox" onchange="toggleSquareGrid()"></div>
+    <label class="check"><input id="boxSelect" type="checkbox" checked onchange="draw()"> Select Box</label>
+    <div class="row"><label>Line</label><input id="gridColor" type="color" value="#00aa88" onchange="draw()"></div>
+    <div class="row"><label>Thickness</label><input id="gridWidth" type="range" min=".2" max="8" step=".2" value="1" oninput="draw()"></div>
+    <div class="row"><label>Opacity</label><input id="gridOpacity" type="range" min="0" max="1" step=".05" value=".75" oninput="draw()"></div>
+    <div class="row"><label>Style</label><select id="gridStyle" onchange="draw()"><option>Solid</option><option>Dashed</option><option>Dotted</option></select></div>
+  
+  <div class="section">
+    <h3>Grid</h3>
 
-  <label class="check">
-    <input id="labels" type="checkbox" onchange="draw()">
-    Cell labels
-  </label>
-</div>
+    <label class="check">
+      <input id="squareGrid" type="checkbox" onchange="updateGridMode()">
+      Square Grid
+    </label>
+
+    <div id="squareGridControls" style="display:none">
+      <div class="row">
+        <label>Box size</label>
+        <input id="squareSize" type="number" value="1" min="0.01" step="0.01" oninput="draw()">
+      </div>
+
+      <div class="row">
+        <label>Unit</label>
+        <select id="squareUnit" onchange="draw()">
+          <option value="cm">Centimeters (cm)</option>
+          <option value="mm">Millimeters (mm)</option>
+          <option value="m">Meters (m)</option>
+          <option value="in">Inches (in)</option>
+          <option value="ft">Feet (ft)</option>
+          <option value="yd">Yards (yd)</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label>Paper width</label>
+        <input id="paperWidth" type="number" value="21" min="0.01" step="0.01" oninput="draw()">
+      </div>
+
+      <div class="row">
+        <label>Paper height</label>
+        <input id="paperHeight" type="number" value="29.7" min="0.01" step="0.01" oninput="draw()">
+      </div>
+
+      <div id="gridCountInfo" style="font-size:12px;color:var(--muted);margin:8px 0"></div>
+
+      <label class="check">
+        <input id="addExactLines" type="checkbox" checked onchange="draw()">
+        Add exact boundary lines
+      </label>
+    </div>
+
+    <div id="normalGridControls">
+      <div class="row">
+        <label>Rows</label>
+        <input id="rows" type="number" value="10" min="1" max="100" onchange="draw()">
+      </div>
+      <div class="row">
+        <label>Columns</label>
+        <input id="cols" type="number" value="10" min="1" max="100" onchange="draw()">
+      </div>
+      <div class="row">
+        <label>Line</label>
+        <input id="gridColor" type="color" value="#00aa88" onchange="draw()">
+      </div>
+      <div class="row">
+        <label>Thickness</label>
+        <input id="gridWidth" type="range" min=".2" max="8" step=".2" value="1" oninput="draw()">
+      </div>
+      <div class="row">
+        <label>Opacity</label>
+        <input id="gridOpacity" type="range" min="0" max="1" step=".05" value=".75" oninput="draw()">
+      </div>
+      <div class="row">
+        <label>Style</label>
+        <select id="gridStyle" onchange="draw()">
+          <option>Solid</option><option>Dashed</option><option>Dotted</option>
+        </select>
+      </div>
+    </div>
+
+    <label class="check">
+      <input id="diagonal" type="checkbox" onchange="draw()">
+      Diagonal / cross
+    </label>
+
+    <label class="check">
+      <input id="labels" type="checkbox" onchange="draw()">
+      Cell labels
+    </label>
+  </div>
 
   <div class="section">
     <h3>Image adjustment</h3>
@@ -280,28 +362,179 @@ function draw(){
  drawDrawingLayer();
  updateCanvasSize();
 }
-function drawGrid(){
- const rows=+$('rows').value||10,cols=+$('cols').value||10;
- const cw=canvas.width/cols,ch=canvas.height/rows;
- ctx.save();ctx.globalAlpha=+$('gridOpacity').value;ctx.strokeStyle=$('gridColor').value;ctx.lineWidth=+$('gridWidth').value;
- const style=$('gridStyle').value;
- if(style==='Dashed')ctx.setLineDash([10,8]);else if(style==='Dotted')ctx.setLineDash([2,6]);else ctx.setLineDash([]);
- for(let c=1;c<cols;c++){ctx.beginPath();ctx.moveTo(c*cw,0);ctx.lineTo(c*cw,canvas.height);ctx.stroke()}
- for(let r=1;r<rows;r++){ctx.beginPath();ctx.moveTo(0,r*ch);ctx.lineTo(canvas.width,r*ch);ctx.stroke()}
- if($('diagonal').checked){
-   ctx.setLineDash([]);ctx.globalAlpha=Math.min(1,+$('gridOpacity').value*.65);
-   for(let c=0;c<cols;c++){for(let r=0;r<rows;r++){
-     let x=c*cw,y=r*ch;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+cw,y+ch);ctx.stroke();
-     ctx.beginPath();ctx.moveTo(x+cw,y);ctx.lineTo(x,y+ch);ctx.stroke();
-   }}
+function getGridGeometry(){
+ const rows=Math.max(1,+$('rows').value||10),cols=Math.max(1,+$('cols').value||10);
+ let cw=canvas.width/cols,ch=canvas.height/rows,startX=0,startY=0,gridW=canvas.width,gridH=canvas.height;
+ if($('squareGrid').checked){
+   const size=Math.min(canvas.width/cols,canvas.height/rows);
+   cw=size;ch=size;gridW=cw*cols;gridH=ch*rows;
+   startX=(canvas.width-gridW)/2;startY=(canvas.height-gridH)/2;
  }
- if($('labels').checked){
-   ctx.setLineDash([]);ctx.fillStyle=$('gridColor').value;ctx.font=Math.max(10,Math.min(18,cw/5))+'px Arial';
-   ctx.globalAlpha=1;
-   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)ctx.fillText(String.fromCharCode(65+(r%26))+(c+1),c*cw+4,r*ch+16);
- }
- ctx.restore();
+ return {rows,cols,cw,ch,startX,startY,gridW,gridH};
 }
+function updateGridMode(){
+  const on=$('squareGrid').checked;
+  $('squareGridControls').style.display=on?'block':'none';
+  $('normalGridControls').style.display=on?'none':'block';
+
+  if(on){
+    // Use the selected unit as the physical measurement of the paper.
+    const p=$('preset').value;
+    const unit=$('squareUnit').value;
+    const defaults={
+      cm:{a5:[14.8,21],a4:[21,29.7],a3:[29.7,42],square:[25,25]},
+      mm:{a5:[148,210],a4:[210,297],a3:[297,420],square:[250,250]},
+      m:{a5:[.148,.210],a4:[.210,.297],a3:[.297,.420],square:[.25,.25]},
+      in:{a5:[5.827,8.268],a4:[8.268,11.693],a3:[11.693,16.535],square:[9.843,9.843]},
+      ft:{a5:[.486,.689],a4:[.689,.974],a3:[.974,1.378],square:[.820,.820]},
+      yd:{a5:[.162,.230],a4:[.230,.390],a3:[.325,.459],square:[.273,.273]}
+    };
+    if(defaults[unit] && defaults[unit][p]){
+      $('paperWidth').value=defaults[unit][p][0];
+      $('paperHeight').value=defaults[unit][p][1];
+    }
+  }
+  draw();
+}
+
+function getSquareGridGeometry(){
+  const size=+$('squareSize').value;
+  const pw=+$('paperWidth').value;
+  const ph=+$('paperHeight').value;
+  if(!(size>0)||!(pw>0)||!(ph>0))return null;
+
+  // Physical scale: canvas pixels represent the supplied physical paper size.
+  const pxPerUnit=Math.min(canvas.width/pw,canvas.height/ph);
+
+  // Exact requested square size in canvas pixels.
+  const cell=size*pxPerUnit;
+
+  // Number of complete boxes that physically fit.
+  const cols=Math.floor(pw/size+1e-10);
+  const rows=Math.floor(ph/size+1e-10);
+
+  // Remaining physical space after complete boxes.
+  const usedW=cols*size;
+  const usedH=rows*size;
+  const remW=pw-usedW;
+  const remH=ph-usedH;
+
+  // Start at the actual paper origin, not centered. This makes the grid
+  // correspond directly to the paper measurement.
+  const left=(canvas.width-pw*pxPerUnit)/2;
+  const top=(canvas.height-ph*pxPerUnit)/2;
+
+  return {
+    size,pw,ph,pxPerUnit,cell,cols,rows,usedW,usedH,remW,remH,left,top,
+    paperW:pxPerUnit*pw,paperH:pxPerUnit*ph
+  };
+}
+
+function drawGrid(){
+  const square=$('squareGrid') && $('squareGrid').checked;
+
+  if(square){
+    const g=getSquareGridGeometry();
+    if(!g)return;
+
+    const unit=$('squareUnit').value;
+    const labelUnit={cm:'cm',mm:'mm',m:'m',in:'in',ft:'ft',yd:'yd'}[unit];
+
+    ctx.save();
+    ctx.globalAlpha=+$('gridOpacity').value;
+    ctx.strokeStyle=$('gridColor').value;
+    ctx.lineWidth=+$('gridWidth').value;
+    ctx.setLineDash([]);
+
+    // Paper boundary.
+    if($('addExactLines').checked){
+      ctx.strokeRect(g.left,g.top,g.paperW,g.paperH);
+    }
+
+    // Complete square boxes.
+    for(let c=1;c<g.cols;c++){
+      const x=g.left+c*g.cell;
+      ctx.beginPath();ctx.moveTo(x,g.top);ctx.lineTo(x,g.top+g.rows*g.cell);ctx.stroke();
+    }
+    for(let r=1;r<g.rows;r++){
+      const y=g.top+r*g.cell;
+      ctx.beginPath();ctx.moveTo(g.left,y);ctx.lineTo(g.left+g.cols*g.cell,y);ctx.stroke();
+    }
+
+    // Exact remaining-space boundary lines. These are added when the paper
+    // dimensions are not an exact multiple of the requested box size.
+    if($('addExactLines').checked){
+      if(g.remW>1e-9){
+        const x=g.left+g.cols*g.cell;
+        ctx.beginPath();ctx.moveTo(x,g.top);ctx.lineTo(x,g.top+g.paperH);ctx.stroke();
+      }
+      if(g.remH>1e-9){
+        const y=g.top+g.rows*g.cell;
+        ctx.beginPath();ctx.moveTo(g.left,y);ctx.lineTo(g.left+g.paperW,y);ctx.stroke();
+      }
+    }
+
+    if($('diagonal').checked){
+      ctx.globalAlpha=Math.min(1,+$('gridOpacity').value*.65);
+      for(let c=0;c<g.cols;c++){
+        for(let r=0;r<g.rows;r++){
+          const x=g.left+c*g.cell,y=g.top+r*g.cell;
+          ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+g.cell,y+g.cell);ctx.stroke();
+          ctx.beginPath();ctx.moveTo(x+g.cell,y);ctx.lineTo(x,y+g.cell);ctx.stroke();
+        }
+      }
+    }
+
+    if($('labels').checked){
+      ctx.setLineDash([]);
+      ctx.globalAlpha=1;
+      ctx.fillStyle=$('gridColor').value;
+      ctx.font=Math.max(10,Math.min(18,g.cell/5))+'px Arial';
+      for(let r=0;r<g.rows;r++){
+        for(let c=0;c<g.cols;c++){
+          ctx.fillText(
+            String.fromCharCode(65+(r%26))+(c+1),
+            g.left+c*g.cell+4,
+            g.top+r*g.cell+16
+          );
+        }
+      }
+    }
+
+    $('gridCountInfo').innerHTML =
+      '<b>'+g.cols+' × '+g.rows+'</b> complete square boxes ('+
+      g.size+' '+labelUnit+' each)' +
+      '<br>Paper: '+g.pw+' × '+g.ph+' '+labelUnit+
+      '<br>Remaining: '+g.remW.toFixed(3)+' '+labelUnit+
+      ' width, '+g.remH.toFixed(3)+' '+labelUnit+' height';
+
+    ctx.restore();
+    return;
+  }
+
+  // Original rectangular grid mode.
+  const rows=+$('rows').value||10,cols=+$('cols').value||10;
+  const cw=canvas.width/cols,ch=canvas.height/rows;
+  ctx.save();ctx.globalAlpha=+$('gridOpacity').value;ctx.strokeStyle=$('gridColor').value;ctx.lineWidth=+$('gridWidth').value;
+  const style=$('gridStyle').value;
+  if(style==='Dashed')ctx.setLineDash([10,8]);else if(style==='Dotted')ctx.setLineDash([2,6]);else ctx.setLineDash([]);
+  for(let c=1;c<cols;c++){ctx.beginPath();ctx.moveTo(c*cw,0);ctx.lineTo(c*cw,canvas.height);ctx.stroke()}
+  for(let r=1;r<rows;r++){ctx.beginPath();ctx.moveTo(0,r*ch);ctx.lineTo(canvas.width,r*ch);ctx.stroke()}
+  if($('diagonal').checked){
+    ctx.setLineDash([]);ctx.globalAlpha=Math.min(1,+$('gridOpacity').value*.65);
+    for(let c=0;c<cols;c++){for(let r=0;r<rows;r++){
+      let x=c*cw,y=r*ch;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+cw,y+ch);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x+cw,y);ctx.lineTo(x,y+ch);ctx.stroke();
+    }}
+  }
+  if($('labels').checked){
+    ctx.setLineDash([]);ctx.fillStyle=$('gridColor').value;ctx.font=Math.max(10,Math.min(18,cw/5))+'px Arial';
+    ctx.globalAlpha=1;
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)ctx.fillText(String.fromCharCode(65+(r%26))+(c+1),c*cw+4,r*ch+16);
+  }
+  ctx.restore();
+}
+
 let strokes=[];
 function drawDrawingLayer(){
  if(!strokes.length)return;
@@ -317,7 +550,9 @@ function canvasPoint(e){
  return {x:(e.clientX-rect.left)*(canvas.width/rect.width),y:(e.clientY-rect.top)*(canvas.height/rect.height)};
 }
 canvas.addEventListener('pointerdown',e=>{
- if(locked||picker||!drawingMode)return;
+ if(locked||picker)return;
+ if(selectGridBox(e))return;
+ if(!drawingMode)return;
  drawing=true;const p=canvasPoint(e);lastX=p.x;lastY=p.y;
  strokes.push({tool,color:$('drawColor').value,size:+$('brushSize').value,points:[p]});
  saveHistory();canvas.setPointerCapture(e.pointerId);draw();
@@ -385,7 +620,7 @@ function redo(){if(!redoStack.length)return;let x=redoStack.pop();undoStack.push
 function projectData(){
  return {version:1,name:$('projectName').value,canvas:{w:canvas.width,h:canvas.height},grid:{
  rows:$('rows').value,cols:$('cols').value,color:$('gridColor').value,width:$('gridWidth').value,
- opacity:$('gridOpacity').value,style:$('gridStyle').value,diagonal:$('diagonal').checked,labels:$('labels').checked},
+ opacity:$('gridOpacity').value,style:$('gridStyle').value,diagonal:$('diagonal').checked,labels:$('labels').checked,squareGrid:$('squareGrid').checked,boxSelect:$('boxSelect').checked},
  adjustments:{brightness:$('brightness').value,contrast:$('contrast').value,saturation:$('saturation').value,gray:$('gray').checked,invert:$('invert').checked},
  trace,realSize,drawingMode,rotation,strokes,reference:refImage?refImage.src:null};
 }
@@ -403,7 +638,16 @@ function importProjectFile(file){
 function loadProject(p){
  $('projectName').value=p.name||'Imported Project';canvas.width=p.canvas?.w||800;canvas.height=p.canvas?.h||1100;
  const g=p.grid||{};['rows','cols','gridColor','gridWidth','gridOpacity','gridStyle'].forEach(id=>{if(g[id]!=null)$(id).value=g[id]});
- $('diagonal').checked=!!g.diagonal;$('labels').checked=!!g.labels;
+ $('squareGrid').checked=!!g.squareGrid;$('diagonal').checked=!!g.diagonal;$('labels').checked=!!g.labels;
+  if($('squareGrid')){
+    $('squareGrid').checked=!!g.squareGrid;
+    if(g.squareSize!=null)$('squareSize').value=g.squareSize;
+    if(g.squareUnit!=null)$('squareUnit').value=g.squareUnit;
+    if(g.paperWidth!=null)$('paperWidth').value=g.paperWidth;
+    if(g.paperHeight!=null)$('paperHeight').value=g.paperHeight;
+    $('addExactLines').checked=g.addExactLines!==false;
+    updateGridMode();
+  }$('squareGrid').checked=!!g.squareGrid;$('boxSelect').checked=g.boxSelect!==false;selectedCell=null;updateGridSelectBadge();
  const a=p.adjustments||{};['brightness','contrast','saturation'].forEach(id=>{if(a[id]!=null)$(id).value=a[id]});
  $('gray').checked=!!a.gray;$('invert').checked=!!a.invert;trace=!!p.trace;realSize=!!p.realSize;drawingMode=!!p.drawingMode;rotation=p.rotation||0;strokes=p.strokes||[];toggleDrawingMode(drawingMode);
  if(p.reference){let img=new Image();img.onload=()=>{refImage=img;$('emptyMsg').style.display='none';draw()};img.src=p.reference}else draw();
@@ -567,7 +811,7 @@ function setTheme(v){
 function toggleSidebar(){$('sidebar').style.display=$('sidebar').style.display==='none'?'block':'none'}
 window.addEventListener('load',()=>{
  const saved=localStorage.getItem('artsOfNdnProject');
- if(saved){try{loadProject(JSON.parse(saved));status('Saved project restored')}catch(e){draw()}}else{draw();$('emptyMsg').style.display='block';toggleDrawingMode(false)}
+ if(saved){try{loadProject(JSON.parse(saved));status('Saved project restored')}catch(e){draw()}}else{draw();$('emptyMsg').style.display='block';toggleDrawingMode(false);updateGridMode()}
 });
 window.addEventListener('beforeunload',()=>{try{saveProject()}catch(e){}});
 </script>
