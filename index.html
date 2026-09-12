@@ -109,21 +109,74 @@ input[type=range]{width:100%}
     <button class="primary" style="width:100%" onclick="resizeCanvas()">Apply Canvas</button>
   </div>
   
-<div class="row">
-  <label>Square Grid</label>
-  <input id="squareGrid" type="checkbox" onchange="draw()">
-</div>
-  <div class="section">
-    <h3>Grid</h3>
-    <div class="row"><label>Rows</label><input id="rows" type="number" value="10" min="1" max="100" onchange="draw()"></div>
-    <div class="row"><label>Columns</label><input id="cols" type="number" value="10" min="1" max="100" onchange="draw()"></div>
-    <div class="row"><label>Line</label><input id="gridColor" type="color" value="#00aa88" onchange="draw()"></div>
-    <div class="row"><label>Thickness</label><input id="gridWidth" type="range" min=".2" max="8" step=".2" value="1"></div>
-    <div class="row"><label>Opacity</label><input id="gridOpacity" type="range" min="0" max="1" step=".05" value=".75"></div>
-    <select id="gridStyle" onchange="draw()"><option>Solid</option><option>Dashed</option><option>Dotted</option></select>
-    <label class="check"><input id="diagonal" type="checkbox" onchange="draw()"> Diagonal / cross</label>
-    <label class="check"><input id="labels" type="checkbox" onchange="draw()"> Cell labels</label>
+<div class="section">
+  <h3>Grid</h3>
+
+  <div class="row">
+    <label>Square Grid</label>
+    <input id="squareGrid" type="checkbox" onchange="draw()">
   </div>
+
+  <div class="row">
+    <label>Rows</label>
+    <input id="rows" type="number" value="10" min="1" max="100" onchange="draw()">
+  </div>
+
+  <div class="row">
+    <label>Columns</label>
+    <input id="cols" type="number" value="10" min="1" max="100" onchange="draw()">
+  </div>
+
+  <div class="row">
+    <label>Line</label>
+    <input id="gridColor" type="color" value="#00aa88" onchange="draw()">
+  </div>
+
+  <div class="row">
+    <label>Thickness</label>
+    <input
+      id="gridWidth"
+      type="range"
+      min=".2"
+      max="8"
+      step=".2"
+      value="1"
+      oninput="draw()"
+    >
+  </div>
+
+  <div class="row">
+    <label>Opacity</label>
+    <input
+      id="gridOpacity"
+      type="range"
+      min="0"
+      max="1"
+      step=".05"
+      value=".75"
+      oninput="draw()"
+    >
+  </div>
+
+  <div class="row">
+    <label>Style</label>
+    <select id="gridStyle" onchange="draw()">
+      <option value="Solid">Solid</option>
+      <option value="Dashed">Dashed</option>
+      <option value="Dotted">Dotted</option>
+    </select>
+  </div>
+
+  <label class="check">
+    <input id="diagonal" type="checkbox" onchange="draw()">
+    Diagonal / cross
+  </label>
+
+  <label class="check">
+    <input id="labels" type="checkbox" onchange="draw()">
+    Cell labels
+  </label>
+</div>
 
   <div class="section">
     <h3>Image adjustment</h3>
