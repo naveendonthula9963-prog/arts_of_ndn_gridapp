@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ARTS OF NDN — Grid App for Artists</title>
+<style>
+:root{
+  --bg:#101214;--panel:#191d21;--panel2:#22272d;--text:#f2f4f7;--muted:#aab3bd;
+  --accent:#00b887;--border:#343b43;--danger:#ef5350;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}
+button,input,select{font:inherit}
+button{border:0;border-radius:8px;padding:10px 14px;background:var(--panel2);color:var(--text);cursor:pointer}
+button:hover{filter:brightness(1.15)}
+button.primary{background:var(--accent);color:#06130f;font-weight:700}
+button.danger{background:var(--danger);color:#fff}
+button.active{outline:2px solid var(--accent)}
+.app{min-height:100vh;display:flex;flex-direction:column}
+.top{height:64px;background:#17191c;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:12px;position:sticky;top:0;z-index:20}
+.logo{font-weight:800;font-size:20px;letter-spacing:.4px}
+.logo span{color:var(--accent)}
+.spacer{flex:1}
+.main{display:flex;flex:1;min-height:calc(100vh - 64px)}
+.sidebar{width:290px;background:var(--panel);border-right:1px solid var(--border);padding:14px;overflow:auto}
+.workspace{flex:1;display:flex;flex-direction:column;min-width:0}
+.toolbar{background:var(--panel);border-bottom:1px solid var(--border);padding:9px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.toolbar .group{display:flex;gap:6px;align-items:center;padding-right:8px;border-right:1px solid var(--border)}
+.toolbar label{font-size:12px;color:var(--muted)}
+.canvasWrap{position:relative;flex:1;overflow:hidden;background:#090a0b;display:flex;align-items:center;justify-content:center;touch-action:none}
+#artCanvas{background:#fff;box-shadow:0 8px 35px #000;touch-action:none;max-width:none;max-height:none}
+.empty{position:absolute;text-align:center;color:var(--muted);pointer-events:none}
+.empty strong{display:block;color:var(--text);font-size:20px;margin-bottom:8px}
+.section{border-bottom:1px solid var(--border);padding:0 0 14px;margin-bottom:14px}
+.section h3{font-size:13px;text-transform:uppercase;color:var(--muted);margin:6px 0 10px}
+.row{display:flex;gap:7px;align-items:center;margin:7px 0}
+.row>*{flex:1;min-width:0}
+.row button{flex:0 0 auto}
+input[type=number],input[type=text],select{width:100%;background:#101317;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px}
+input[type=color]{width:48px;height:36px;border:0;background:none;padding:0}
+input[type=range]{width:100%}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin:8px 0}
+.status{padding:7px 12px;background:#111417;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+.home{padding:28px;max-width:1100px;width:100%;margin:auto}
+.hero{padding:28px;border-radius:16px;background:linear-gradient(135deg,#1b2025,#111416);border:1px solid var(--border)}
+.hero h1{font-size:42px;margin:0 0 8px}
+.hero p{color:var(--muted)}
+.sourceBtns{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:22px}
+.projects{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-top:20px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px}
+.card img{width:100%;height:120px;object-fit:cover;border-radius:8px;background:#080909}
+.card h4{margin:9px 0 4px}.card small{color:var(--muted)}
+#cameraModal,#settingsModal{position:fixed;inset:0;background:#000b;z-index:50;display:none;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;width:min(700px,100%);max-height:90vh;overflow:auto;padding:18px}
+#video{width:100%;background:#000;border-radius:10px}
+.toast{position:fixed;right:18px;bottom:18px;background:#252b31;color:#fff;padding:12px 16px;border-radius:8px;display:none;z-index:100}
+.mobileOnly{display:none}
+.drawingToolsDisabled{opacity:.42;pointer-events:none;filter:grayscale(1)}
+.drawingToolsEnabled{opacity:1;pointer-events:auto}
+.modeBadge{font-size:12px;color:var(--muted);padding:6px 8px;border-radius:6px;background:#101317}
+
+@media(max-width:850px){
+ .sidebar{width:235px}.sourceBtns{grid-template-columns:1fr}
+ .hero h1{font-size:30px}
+}
+@media(max-width:650px){
+ .sidebar{display:none}.mobileOnly{display:inline-block}.toolbar{overflow-x:auto;flex-wrap:nowrap}
+ .toolbar .group{flex-shrink:0}.top{height:56px}.main{min-height:calc(100vh - 56px)}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <button class="mobileOnly" onclick="toggleSidebar()">☰</button>
+  <div class="logo">ARTS OF <span>NDN</span></div>
+  <div class="spacer"></div>
+  <button onclick="showHome()">Home</button>
+  <button onclick="saveProject()">💾 Save</button>
+  <button onclick="exportProject()">Project</button>
+  <button onclick="document.getElementById('projectInput').click()">Import</button>
+  <button onclick="showSettings()">⚙</button>
+</header>
+
+<div class="main">
+<aside class="sidebar" id="sidebar">
+  <div class="section">
+    <h3>Reference image</h3>
+    <div class="row"><button class="primary" onclick="pickGallery()">🖼 Gallery</button><button onclick="pickFiles()">📁 Files</button></div>
+    <button style="width:100%" onclick="takePhoto()">📷 Take Photo</button>
+    <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden onchange="loadImageFile(this.files[0])">
+    <input id="galleryInput" type="file" accept="image/*" hidden onchange="loadImageFile(this.files[0])">
+    <input id="fileInput" type="file" accept="image/*,.jpg,.jpeg,.png,.webp" hidden onchange="loadImageFile(this.files[0])">
+    <input id="projectInput" type="file" accept=".artsndn,.json,application/json" hidden onchange="importProjectFile(this.files[0])">
+    <p style="font-size:11px;color:var(--muted);margin:9px 0 0">
+      Camera works through the phone camera picker, or through the live camera preview on localhost/HTTPS.
+    </p>
+  </div>
+
+  <div class="section">
+    <h3>Canvas</h3>
+    <div class="row"><select id="preset" onchange="applyPreset()">
+      <option value="custom">Custom</option><option value="a5">A5</option><option value="a4" selected>A4</option>
+      <option value="a3">A3</option><option value="square">Square</option>
+    </select></div>
+    <div class="row"><input id="canvasW" type="number" value="800" min="100"><input id="canvasH" type="number" value="1100" min="100"></div>
+    <div class="row"><button onclick="setOrientation('portrait')">Portrait</button><button onclick="setOrientation('landscape')">Landscape</button></div>
+    <button class="primary" style="width:100%" onclick="resizeCanvas()">Apply Canvas</button>
+  </div>
+
+  <div class="section">
+    <h3>Grid</h3>
+    <div class="row"><label>Rows</label><input id="rows" type="number" value="10" min="1" max="100" onchange="draw()"></div>
+    <div class="row"><label>Columns</label><input id="cols" type="number" value="10" min="1" max="100" onchange="draw()"></div>
+    <div class="row"><label>Line</label><input id="gridColor" type="color" value="#00aa88" onchange="draw()"></div>
+    <div class="row"><label>Thickness</label><input id="gridWidth" type="range" min=".2" max="8" step=".2" value="1"></div>
+    <div class="row"><label>Opacity</label><input id="gridOpacity" type="range" min="0" max="1" step=".05" value=".75"></div>
+    <select id="gridStyle" onchange="draw()"><option>Solid</option><option>Dashed</option><option>Dotted</option></select>
+    <label class="check"><input id="diagonal" type="checkbox" onchange="draw()"> Diagonal / cross</label>
+    <label class="check"><input id="labels" type="checkbox" onchange="draw()"> Cell labels</label>
+  </div>
+
+  <div class="section">
+    <h3>Image adjustment</h3>
+    <label class="check">Brightness <input id="brightness" type="range" min="0" max="200" value="100" oninput="draw()"></label>
+    <label class="check">Contrast <input id="contrast" type="range" min="0" max="200" value="100" oninput="draw()"></label>
+    <label class="check">Saturation <input id="saturation" type="range" min="0" max="200" value="100" oninput="draw()"></label>
+    <label class="check"><input id="gray" type="checkbox" onchange="draw()"> Grayscale</label>
+    <label class="check"><input id="invert" type="checkbox" onchange="draw()"> Invert</label>
+    <div class="row"><button onclick="rotate(-90)">↶ Rotate</button><button onclick="rotate(90)">↷ Rotate</button></div>
+  </div>
+
+  <div class="section">
+    <h3>Trace / compare</h3>
+    <label class="check">Reference opacity <input id="imageOpacity" type="range" min="0" max="1" step=".05" value="1" oninput="draw()"></label>
+    <button id="traceBtn" style="width:100%" onclick="toggleTrace()">Trace: OFF</button>
+    <button id="realBtn" style="width:100%;margin-top:7px" onclick="toggleRealSize()">Real Size: OFF</button>
+  </div>
+
+  <div class="section">
+    <h3>Drawing</h3>
+    <div class="row">
+      <button id="drawingToggle" class="primary" style="width:100%" onclick="toggleDrawingMode()">✏ Drawing: OFF</button>
+    </div>
+    <div id="drawingTools" class="drawingToolsDisabled">
+      <div class="modeBadge">Drawing tools are available only when Drawing is ON.</div>
+      <div class="row">
+        <button id="pencilBtn" class="active" onclick="setTool('pencil')">✏ Pencil</button>
+        <button id="eraserBtn" onclick="setTool('eraser')">🧽 Eraser</button>
+      </div>
+      <div class="row"><label>Color</label><input id="drawColor" type="color" value="#111111"></div>
+      <label class="check">Brush size <input id="brushSize" type="range" min="1" max="40" value="4"></label>
+      <button class="danger" style="width:100%" onclick="clearDrawing()">Clear Drawing</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Zoom / lock</h3>
+    <div class="row"><button onclick="zoom(-.1)">−</button><button onclick="resetZoom()">100%</button><button onclick="zoom(.1)">+</button></div>
+    <button id="lockBtn" style="width:100%" onclick="toggleLock()">🔓 Lock: OFF</button>
+  </div>
+
+  <div class="section">
+    <h3>Color finder</h3>
+    <p style="font-size:12px;color:var(--muted)">Choose the picker, then click the reference image.</p>
+    <button id="pickerBtn" style="width:100%" onclick="togglePicker()">🎨 Pick Color</button>
+    <div id="colorInfo" style="font-size:12px;margin-top:9px"></div>
+  </div>
+</aside>
+
+<section class="workspace">
+  <div class="toolbar">
+    <div class="group"><button onclick="showHome()">🏠</button><button onclick="pickGallery()">🖼</button><button onclick="takePhoto()">📷</button></div>
+    <div class="group"><button onclick="toggleTrace()">Trace</button><button onclick="toggleRealSize()">Real Size</button><button onclick="toggleLock()">Lock</button><button id="toolbarDrawingBtn" onclick="toggleDrawingMode()">✏ Drawing OFF</button></div>
+    <div class="group"><button onclick="undo()">↶ Undo</button><button onclick="redo()">↷ Redo</button></div>
+    <div class="group"><button onclick="exportPNG()">Export PNG</button><button onclick="exportPDF()">Print/PDF</button><button onclick="shareImage()">Share</button></div>
+    <div class="spacer"></div>
+    <span id="zoomText">100%</span>
+  </div>
+  <div class="canvasWrap" id="canvasWrap">
+    <canvas id="artCanvas" width="800" height="1100"></canvas>
+    <div class="empty" id="emptyMsg"><strong>ARTS OF NDN</strong>Select a photo from Camera, Gallery or Files</div>
+  </div>
+  <div class="status" id="status">Ready • No reference image loaded</div>
+</section>
+</div>
+</div>
+
+<div id="cameraModal">
+ <div class="modal">
+   <h2>📷 Camera</h2>
+   <p id="cameraHelp" style="color:var(--muted);font-size:13px">
+     Allow camera permission, then press Capture.
+   </p>
+   <video id="video" autoplay playsinline muted></video>
+   <div id="cameraError" style="display:none;color:#ff8a80;font-size:13px;margin:10px 0"></div>
+   <div class="row">
+     <button class="primary" onclick="capturePhoto()">📷 Capture</button>
+     <button onclick="closeCamera()">Cancel</button>
+   </div>
+   <div style="margin-top:10px">
+     <button style="width:100%" onclick="useCameraFileFallback()">📱 Use phone camera</button>
+   </div>
+   <canvas id="captureCanvas" hidden></canvas>
+ </div>
+</div>
+
+<div id="settingsModal">
+ <div class="modal">
+  <h2>Settings</h2>
+  <div class="row"><label>Theme</label><select id="theme" onchange="setTheme(this.value)"><option value="dark">Dark</option><option value="light">Light</option></select></div>
+  <div class="row"><label>Project name</label><input id="projectName" type="text" value="My Artwork"></div>
+  <p style="color:var(--muted);font-size:13px">Projects are stored locally in this browser. Export a .artsndn file for backup or transfer.</p>
+  <button onclick="showSettings(false)">Close</button>
+ </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const canvas=document.getElementById('artCanvas'),ctx=canvas.getContext('2d');
+let refImage=null, rotation=0, zoomLevel=1, locked=false, trace=false, realSize=false, picker=false, drawingMode=false;
+let tool='pencil', drawing=false, lastX=0,lastY=0, undoStack=[],redoStack=[], cameraStream=null;
+let panX=0,panY=0;
+
+function $(id){return document.getElementById(id)}
+function toast(s){let t=$('toast');t.textContent=s;t.style.display='block';setTimeout(()=>t.style.display='none',1800)}
+function status(s){$('status').textContent=s}
+function showHome(){
+  status(refImage?'Editing project':'Ready • Select a reference image');
+}
+function pickGallery(){$('galleryInput').click()}
+function pickFiles(){$('fileInput').click()}
+function loadImageFile(file){
+ if(!file)return;
+ const r=new FileReader();
+ r.onload=e=>{const img=new Image();img.onload=()=>{refImage=img;rotation=0;$('emptyMsg').style.display='none';fitImageToCanvas();saveHistory();draw();status('Reference loaded • '+file.name)};img.src=e.target.result};
+ r.readAsDataURL(file);
+}
+function fitImageToCanvas(){
+ if(!refImage)return;
+ const scale=Math.min(canvas.width/refImage.width,canvas.height/refImage.height);
+ // store image placement in a simple center-fit model
+ draw();
+}
+function resizeCanvas(){
+ let w=parseInt($('canvasW').value)||800,h=parseInt($('canvasH').value)||1100;
+ canvas.width=Math.max(100,Math.min(2500,w));canvas.height=Math.max(100,Math.min(2500,h));
+ draw();toast('Canvas updated');
+}
+function applyPreset(){
+ const p=$('preset').value;
+ const sizes={a5:[559,794],a4:[794,1123],a3:[1123,1587],square:[1000,1000]};
+ if(sizes[p]){$('canvasW').value=sizes[p][0];$('canvasH').value=sizes[p][1];resizeCanvas()}
+}
+function setOrientation(o){
+ let w=+$('canvasW').value,h=+$('canvasH').value;
+ if((o==='landscape'&&h>w)||(o==='portrait'&&w>h)){[$('canvasW').value,$('canvasH').value]=[h,w];resizeCanvas()}
+}
+function rotate(deg){rotation=(rotation+deg+360)%360;draw();saveHistory()}
+function draw(){
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+ if(refImage){
+   ctx.save();
+   let filters=`brightness(${$('brightness').value}%) contrast(${$('contrast').value}%) saturate(${$('saturation').value}%)`;
+   if($('gray').checked)filters+=' grayscale(100%)';
+   if($('invert').checked)filters+=' invert(100%)';
+   ctx.filter=filters;
+   ctx.globalAlpha=trace?+$('imageOpacity').value*.55:+$('imageOpacity').value;
+   const ang=rotation*Math.PI/180;
+   let iw=refImage.width,ih=refImage.height;
+   if(rotation%180!==0)[iw,ih]=[ih,iw];
+   const sc=Math.min(canvas.width/iw,canvas.height/ih);
+   const w=refImage.width*sc,h=refImage.height*sc;
+   ctx.translate(canvas.width/2,canvas.height/2);ctx.rotate(ang);
+   ctx.drawImage(refImage,-w/2,-h/2,w,h);ctx.restore();
+ }
+ drawGrid();
+ drawDrawingLayer();
+ updateCanvasSize();
+}
+function drawGrid(){
+ const rows=+$('rows').value||10,cols=+$('cols').value||10;
+ const cw=canvas.width/cols,ch=canvas.height/rows;
+ ctx.save();ctx.globalAlpha=+$('gridOpacity').value;ctx.strokeStyle=$('gridColor').value;ctx.lineWidth=+$('gridWidth').value;
+ const style=$('gridStyle').value;
+ if(style==='Dashed')ctx.setLineDash([10,8]);else if(style==='Dotted')ctx.setLineDash([2,6]);else ctx.setLineDash([]);
+ for(let c=1;c<cols;c++){ctx.beginPath();ctx.moveTo(c*cw,0);ctx.lineTo(c*cw,canvas.height);ctx.stroke()}
+ for(let r=1;r<rows;r++){ctx.beginPath();ctx.moveTo(0,r*ch);ctx.lineTo(canvas.width,r*ch);ctx.stroke()}
+ if($('diagonal').checked){
+   ctx.setLineDash([]);ctx.globalAlpha=Math.min(1,+$('gridOpacity').value*.65);
+   for(let c=0;c<cols;c++){for(let r=0;r<rows;r++){
+     let x=c*cw,y=r*ch;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+cw,y+ch);ctx.stroke();
+     ctx.beginPath();ctx.moveTo(x+cw,y);ctx.lineTo(x,y+ch);ctx.stroke();
+   }}
+ }
+ if($('labels').checked){
+   ctx.setLineDash([]);ctx.fillStyle=$('gridColor').value;ctx.font=Math.max(10,Math.min(18,cw/5))+'px Arial';
+   ctx.globalAlpha=1;
+   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)ctx.fillText(String.fromCharCode(65+(r%26))+(c+1),c*cw+4,r*ch+16);
+ }
+ ctx.restore();
+}
+let strokes=[];
+function drawDrawingLayer(){
+ if(!strokes.length)return;
+ ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+ for(const s of strokes){
+  ctx.beginPath();ctx.strokeStyle=s.tool==='eraser'?'#ffffff':s.color;ctx.lineWidth=s.size;
+  for(let i=0;i<s.points.length;i++){let p=s.points[i];if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)}ctx.stroke();
+ }
+ ctx.restore();
+}
+function canvasPoint(e){
+ const rect=canvas.getBoundingClientRect();
+ return {x:(e.clientX-rect.left)*(canvas.width/rect.width),y:(e.clientY-rect.top)*(canvas.height/rect.height)};
+}
+canvas.addEventListener('pointerdown',e=>{
+ if(locked||picker||!drawingMode)return;
+ drawing=true;const p=canvasPoint(e);lastX=p.x;lastY=p.y;
+ strokes.push({tool,color:$('drawColor').value,size:+$('brushSize').value,points:[p]});
+ saveHistory();canvas.setPointerCapture(e.pointerId);draw();
+});
+canvas.addEventListener('pointermove',e=>{
+ if(!drawing)return;const p=canvasPoint(e);const s=strokes[strokes.length-1];s.points.push(p);draw();
+});
+canvas.addEventListener('pointerup',()=>drawing=false);
+canvas.addEventListener('pointercancel',()=>drawing=false);
+canvas.addEventListener('click',e=>{
+ if(!picker)return;
+ const p=canvasPoint(e),data=ctx.getImageData(Math.floor(p.x),Math.floor(p.y),1,1).data;
+ const hex='#'+[data[0],data[1],data[2]].map(x=>x.toString(16).padStart(2,'0')).join('').toUpperCase();
+ $('drawColor').value=hex;$('colorInfo').innerHTML=`HEX <b>${hex}</b><br>RGB ${data[0]}, ${data[1]}, ${data[2]}`;
+ picker=false;$('pickerBtn').classList.remove('active');toast('Color selected '+hex);
+});
+function toggleDrawingMode(force){
+  drawingMode = typeof force === 'boolean' ? force : !drawingMode;
+
+  const toggle=$('drawingToggle');
+  const toolbar=$('toolbarDrawingBtn');
+  const tools=$('drawingTools');
+
+  toggle.textContent = drawingMode ? '✏ Drawing: ON' : '✏ Drawing: OFF';
+  toggle.classList.toggle('active', drawingMode);
+  toolbar.textContent = drawingMode ? '✏ Drawing ON' : '✏ Drawing OFF';
+  toolbar.classList.toggle('active', drawingMode);
+
+  tools.classList.toggle('drawingToolsDisabled', !drawingMode);
+  tools.classList.toggle('drawingToolsEnabled', drawingMode);
+
+  if(drawingMode){
+    toast('Drawing mode ON — drawing tools enabled');
+  }else{
+    toast('Drawing mode OFF — drawing tools disabled');
+  }
+}
+
+function setTool(t){
+  if(!drawingMode){
+    toast('Turn Drawing ON first');
+    return;
+  }
+  tool=t;
+  $('pencilBtn').classList.toggle('active',t==='pencil');
+  $('eraserBtn').classList.toggle('active',t==='eraser');
+  toast(t==='pencil'?'Pencil selected':'Eraser selected');
+}
+function clearDrawing(){if(!drawingMode){toast('Turn Drawing ON first');return}strokes=[];saveHistory();draw();toast('Drawing cleared')}
+function toggleTrace(){trace=!trace;$('traceBtn').textContent='Trace: '+(trace?'ON':'OFF');$('traceBtn').classList.toggle('active',trace);draw()}
+function toggleRealSize(){realSize=!realSize;$('realBtn').textContent='Real Size: '+(realSize?'ON':'OFF');if(realSize)toast('Real-size display enabled');updateCanvasSize()}
+function toggleLock(){locked=!locked;$('lockBtn').textContent=(locked?'🔒 Lock: ON':'🔓 Lock: OFF');toast(locked?'Canvas locked':'Canvas unlocked')}
+function togglePicker(){picker=!picker;$('pickerBtn').classList.toggle('active',picker)}
+function zoom(v){zoomLevel=Math.max(.25,Math.min(4,zoomLevel+v));updateCanvasSize()}
+function resetZoom(){zoomLevel=1;panX=panY=0;updateCanvasSize()}
+function updateCanvasSize(){
+ canvas.style.width=(canvas.width*zoomLevel)+'px';canvas.style.height=(canvas.height*zoomLevel)+'px';
+ $('zoomText').textContent=Math.round(zoomLevel*100)+'%';
+}
+function saveHistory(){
+ undoStack.push(JSON.stringify(strokes));if(undoStack.length>30)undoStack.shift();redoStack=[];
+}
+function undo(){if(undoStack.length<2)return;redoStack.push(undoStack.pop());strokes=JSON.parse(undoStack[undoStack.length-1]);draw()}
+function redo(){if(!redoStack.length)return;let x=redoStack.pop();undoStack.push(x);strokes=JSON.parse(x);draw()}
+function projectData(){
+ return {version:1,name:$('projectName').value,canvas:{w:canvas.width,h:canvas.height},grid:{
+ rows:$('rows').value,cols:$('cols').value,color:$('gridColor').value,width:$('gridWidth').value,
+ opacity:$('gridOpacity').value,style:$('gridStyle').value,diagonal:$('diagonal').checked,labels:$('labels').checked},
+ adjustments:{brightness:$('brightness').value,contrast:$('contrast').value,saturation:$('saturation').value,gray:$('gray').checked,invert:$('invert').checked},
+ trace,realSize,drawingMode,rotation,strokes,reference:refImage?refImage.src:null};
+}
+function saveProject(){
+ localStorage.setItem('artsOfNdnProject',JSON.stringify(projectData()));
+ toast('Project saved in browser');
+}
+function exportProject(){
+ const blob=new Blob([JSON.stringify(projectData())],{type:'application/json'});
+ downloadBlob(blob,($('projectName').value||'arts-of-ndn')+'.artsndn');toast('Project exported');
+}
+function importProjectFile(file){
+ if(!file)return;const r=new FileReader();r.onload=e=>{try{loadProject(JSON.parse(e.target.result));toast('Project imported')}catch(err){alert('Invalid ARTS OF NDN project file')}};r.readAsText(file)
+}
+function loadProject(p){
+ $('projectName').value=p.name||'Imported Project';canvas.width=p.canvas?.w||800;canvas.height=p.canvas?.h||1100;
+ const g=p.grid||{};['rows','cols','gridColor','gridWidth','gridOpacity','gridStyle'].forEach(id=>{if(g[id]!=null)$(id).value=g[id]});
+ $('diagonal').checked=!!g.diagonal;$('labels').checked=!!g.labels;
+ const a=p.adjustments||{};['brightness','contrast','saturation'].forEach(id=>{if(a[id]!=null)$(id).value=a[id]});
+ $('gray').checked=!!a.gray;$('invert').checked=!!a.invert;trace=!!p.trace;realSize=!!p.realSize;drawingMode=!!p.drawingMode;rotation=p.rotation||0;strokes=p.strokes||[];toggleDrawingMode(drawingMode);
+ if(p.reference){let img=new Image();img.onload=()=>{refImage=img;$('emptyMsg').style.display='none';draw()};img.src=p.reference}else draw();
+}
+function exportPNG(){
+ draw();canvas.toBlob(b=>downloadBlob(b,($('projectName').value||'artwork')+'.png'),'image/png');toast('PNG exported')
+}
+function exportPDF(){
+ const w=window.open('','_blank');w.document.write(`<html><head><title>ARTS OF NDN</title></head><body style="margin:0"><img src="${canvas.toDataURL('image/png')}" style="max-width:100%"><script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close()
+}
+async function shareImage(){
+  canvas.toBlob(async blob=>{
+    if(!blob)return;
+    const file=new File([blob],'arts-of-ndn.png',{type:'image/png'});
+    try{
+      if(navigator.share){
+        if(navigator.canShare && navigator.canShare({files:[file]})){
+          await navigator.share({title:'ARTS OF NDN',text:'My artwork',files:[file]});
+        }else{
+          await navigator.share({title:'ARTS OF NDN',text:'My artwork'});
+        }
+      }else{
+        exportPNG();
+        toast('Sharing is not supported; PNG exported');
+      }
+    }catch(err){
+      if(err.name!=='AbortError') toast('Share cancelled or unavailable');
+    }
+  },'image/png');
+}
+function downloadBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function takePhoto(){
+  /*
+    On phones, the native camera picker is the most reliable option.
+    On desktop/localhost/HTTPS, we also offer the live camera preview.
+  */
+  const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if(isMobile){
+    $('cameraInput').value='';
+    $('cameraInput').click();
+    return;
+  }
+  openCamera();
+}
+
+function useCameraFileFallback(){
+  $('cameraInput').value='';
+  $('cameraInput').click();
+}
+
+async function openCamera(){
+  const modal=$('cameraModal');
+  const video=$('video');
+  const error=$('cameraError');
+  error.style.display='none';
+  error.textContent='';
+  modal.style.display='flex';
+
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    error.textContent='Live camera is not available here. Use "Use phone camera" or open this HTML through localhost/HTTPS.';
+    error.style.display='block';
+    return;
+  }
+
+  try{
+    cameraStream=await navigator.mediaDevices.getUserMedia({
+      video:{
+        facingMode:{ideal:'environment'},
+        width:{ideal:1920},
+        height:{ideal:1080}
+      },
+      audio:false
+    });
+    video.srcObject=cameraStream;
+    await video.play();
+  }catch(err){
+    console.error(err);
+    let msg='Camera could not be opened.';
+    if(err.name==='NotAllowedError') msg='Camera permission was denied. Allow camera permission in the browser and try again.';
+    else if(err.name==='NotFoundError') msg='No camera was found on this device.';
+    else if(err.name==='NotReadableError') msg='The camera is already being used by another application.';
+    else if(err.name==='SecurityError') msg='The browser blocked camera access. Use HTTPS or localhost.';
+    else msg='Camera error: '+(err.message||err.name);
+    error.textContent=msg;
+    error.style.display='block';
+  }
+}
+
+function closeCamera(){
+  if(cameraStream){
+    cameraStream.getTracks().forEach(track=>track.stop());
+    cameraStream=null;
+  }
+  const video=$('video');
+  video.pause();
+  video.srcObject=null;
+  $('cameraModal').style.display='none';
+}
+
+function capturePhoto(){
+  const video=$('video');
+  if(!cameraStream || !video.videoWidth){
+    $('cameraError').textContent='Camera is not ready yet. Wait a moment and try Capture again.';
+    $('cameraError').style.display='block';
+    return;
+  }
+
+  const c=$('captureCanvas');
+  c.width=video.videoWidth;
+  c.height=video.videoHeight;
+  const cctx=c.getContext('2d');
+  cctx.drawImage(video,0,0,c.width,c.height);
+
+  c.toBlob(blob=>{
+    if(!blob){
+      $('cameraError').textContent='Could not create the photo.';
+      $('cameraError').style.display='block';
+      return;
+    }
+    const file=new File([blob],'camera-photo.jpg',{type:'image/jpeg'});
+    loadImageFile(file);
+    closeCamera();
+  },'image/jpeg',0.92);
+}
+
+function loadImageFile(file){
+  if(!file)return;
+
+  if(!file.type.startsWith('image/')){
+    alert('Please select an image file such as JPG, PNG or WEBP.');
+    return;
+  }
+
+  const reader=new FileReader();
+  reader.onerror=()=>alert('Could not read this image.');
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      refImage=img;
+      rotation=0;
+      $('emptyMsg').style.display='none';
+      fitImageToCanvas();
+      saveHistory();
+      draw();
+      status('Reference image loaded • '+file.name);
+      toast('Photo loaded successfully');
+    };
+    img.onerror=()=>alert('This image could not be opened by the browser.');
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+$('cameraModal').addEventListener('click',e=>{if(e.target===$('cameraModal'))closeCamera()});
+$('settingsModal').addEventListener('click',e=>{if(e.target===$('settingsModal'))showSettings(false)});
+function showSettings(open=true){$('settingsModal').style.display=open?'flex':'none'}
+function setTheme(v){
+ if(v==='light'){document.documentElement.style.setProperty('--bg','#f2f4f6');document.documentElement.style.setProperty('--panel','#fff');document.documentElement.style.setProperty('--panel2','#e6e9ed');document.documentElement.style.setProperty('--text','#14171a');document.documentElement.style.setProperty('--muted','#5c6570');}
+ else {location.reload()}
+}
+function toggleSidebar(){$('sidebar').style.display=$('sidebar').style.display==='none'?'block':'none'}
+window.addEventListener('load',()=>{
+ const saved=localStorage.getItem('artsOfNdnProject');
+ if(saved){try{loadProject(JSON.parse(saved));status('Saved project restored')}catch(e){draw()}}else{draw();$('emptyMsg').style.display='block';toggleDrawingMode(false)}
+});
+window.addEventListener('beforeunload',()=>{try{saveProject()}catch(e){}});
+</script>
+</body>
+</html>
