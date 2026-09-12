@@ -114,6 +114,8 @@ input[type=range]{width:100%}
     <h3>Grid</h3>
     <div class="row"><label>Square Grid</label><input id="squareGrid" type="checkbox" onchange="toggleSquareGrid()"></div>
     <label class="check"><input id="boxSelect" type="checkbox" checked onchange="draw()"> Select Box</label>
+    <div class="row"><label>Rows</label><input id="rows" type="number" value="10" min="1" max="100" onchange="draw()"></div>
+    <div class="row"><label>Columns</label><input id="cols" type="number" value="10" min="1" max="100" onchange="draw()"></div>
     <div class="row"><label>Line</label><input id="gridColor" type="color" value="#00aa88" onchange="draw()"></div>
     <div class="row"><label>Thickness</label><input id="gridWidth" type="range" min=".2" max="8" step=".2" value="1" oninput="draw()"></div>
     <div class="row"><label>Opacity</label><input id="gridOpacity" type="range" min="0" max="1" step=".05" value=".75" oninput="draw()"></div>
